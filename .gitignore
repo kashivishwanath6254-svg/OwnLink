@@ -1,0 +1,109 @@
+# Global ignores
+.env
+.codiumignore
+node_modules
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+dist-ssr/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+*.local
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output
+
+# Cache directories
+.npm
+.eslintcache
+.stylelintcache
+.cache
+.parcel-cache
+.vite/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# TypeScript
+*.tsbuildinfo
+
+# OS & Editor
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Package manager
+.yarn-integrity
+*.tgz
+jspm_packages/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Test results
+**/test-results/
+**/playwright-report/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Node.js specific
+lib-cov
+build/Release
+.lock-wscript
+bower_components
+web_modules/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Editor files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
