@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { linkService } from "../services/links.service.js";
 
-export const createLink = (req: Request, res: Response) => {
+export const createLink = (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug, destinationUrl } = req.body;
 
@@ -24,44 +24,20 @@ export const createLink = (req: Request, res: Response) => {
 
     return res.status(201).json(result);
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      return res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Internal server error",
-      error: "Unknown error...",
-    });
+    return next(error);
   }
 };
 
-export const listLinks = (req: Request, res: Response) => {
+export const listLinks = (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = linkService.getAllLinks();
     return res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      return res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Internal server error",
-      error: "Unknown error...",
-    });
+    return next(error);
   }
 };
 
-export const getLink = (req: Request, res: Response) => {
+export const getLink = (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
 
@@ -77,23 +53,11 @@ export const getLink = (req: Request, res: Response) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      return res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Internal server error",
-      error: "Unknown error...",
-    });
+    return next(error);
   }
 };
 
-export const updateLink = (req: Request, res: Response) => {
+export const updateLink = (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug: currentSlug } = req.params;
     const { slug, destinationUrl } = req.body;
@@ -122,23 +86,11 @@ export const updateLink = (req: Request, res: Response) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      return res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Internal server error",
-      error: "Unknown error...",
-    });
+    return next(error);
   }
 };
 
-export const deleteLink = (req: Request, res: Response) => {
+export const deleteLink = (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
     if (Array.isArray(slug)) {
@@ -153,18 +105,6 @@ export const deleteLink = (req: Request, res: Response) => {
     }
     return res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      return res.status(500).json({
-        message: "Internal server error",
-        error: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      message: "Internal server error",
-      error: "Unknown error...",
-    });
+    return next(error);
   }
 };
