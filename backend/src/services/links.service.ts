@@ -1,48 +1,61 @@
-import linkStore from "../data/storage.js";
+import sql from "../db/db.js";
+
+const LINK_COLUMNS = sql`
+id,
+slug,
+destination_url AS "destinationUrl"
+`;
 
 export const linkService = {
-  getLinkBySlug: (slug: string) => {
-    if (!linkStore[slug]) {
-      return null;
-    }
-    const destinationUrl = linkStore[slug].destinationUrl;
-    return { slug, destinationUrl };
+  getLinkBySlug: async (slug: string) => {
+    const result =
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${slug}`;
+    return result[0];
   },
-  getAllLinks: () => {
-    return linkStore;
+
+  getAllLinks: async () => {
+    const result = await sql`SELECT ${LINK_COLUMNS} FROM links`;
+    return result;
   },
-  getDestinationUrl: (slug: string) => {
-    if (!linkStore[slug]) {
-      return null;
-    }
-    return linkStore[slug].destinationUrl;
+
+  getDestinationUrl: async (slug: string) => {
+    const result =
+      await sql`SELECT destination_url FROM links WHERE slug=${slug}`;
+    return result[0].destination_url;
   },
-  createLink: (slug: string, destinationUrl: string) => {
+
+  createLink: async (slug: string, destinationUrl: string) => {
     const newSlug = slug.trim();
     const newUrl = destinationUrl.trim();
 
     if (newSlug.length === 0 || newUrl.length === 0) {
       return { failure: "empty" };
     }
-    if (linkStore[newSlug]) {
+    const result =
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${newSlug}`;
+    if (result.length !== 0) {
       return { failure: "duplicate" };
     }
-    linkStore[newSlug] = { destinationUrl: newUrl };
+    await sql`INSERT INTO links(slug,destination_url) VALUES (${newSlug},${newUrl})`;
     return { success: "Slug created successfully" };
   },
-  deleteLink: (slug: string) => {
+
+  deleteLink: async (slug: string) => {
     const newSlug = slug.trim();
 
     if (newSlug.length === 0) {
       return { failure: "empty" };
     }
-    if (!linkStore[newSlug]) {
+    const result =
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${newSlug}`;
+    if (result.length === 0) {
       return null;
     }
-    delete linkStore[newSlug];
+    await sql`DELETE FROM links WHERE slug=${newSlug}`;
     return { success: "Slug deleted successfully" };
   },
-  updateLink: (slug: string, newSlug: string, newUrl: string) => {
+
+  updateLink: async (slug: string, newSlug: string, newUrl: string) => {
     const currentSlug = slug.trim();
     const updatedSlug = newSlug.trim();
     const updatedUrl = newUrl.trim();
@@ -54,21 +67,21 @@ export const linkService = {
     ) {
       return { failure: "empty" };
     }
-
-    if (!linkStore[currentSlug]) {
+    const current =
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${currentSlug}`;
+    if (current.length === 0) {
       return null;
     }
-    if (linkStore[updatedSlug]) {
-      if (currentSlug === updatedSlug) {
-        linkStore[currentSlug] = { destinationUrl: updatedUrl };
-        return { success: "Slug updated successfully" };
-      } else {
-        return { failure: "duplicate" };
-      }
+    const updated =
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${updatedSlug}`;
+    if (current[0].slug === updatedSlug) {
+      await sql`UPDATE links SET destination_url=${updatedUrl} WHERE slug=${updatedSlug}`;
+      return { success: "Updated successfully" };
     }
-    delete linkStore[currentSlug];
-    linkStore[updatedSlug] = { destinationUrl: updatedUrl };
-
-    return { success: "Slug updated successfully" };
+    if (updated.length !== 0) {
+      return { failure: "duplicate" };
+    }
+    await sql`UPDATE links SET slug=${updatedSlug}, destination_url=${updatedUrl} WHERE slug=${currentSlug}`;
+    return { success: "Updated successfully" };
   },
 };
