@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { linkService } from "../services/links.service.js";
 
-export const createLink = (req: Request, res: Response, next: NextFunction) => {
+export const createLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { slug, destinationUrl } = req.body;
 
@@ -10,7 +14,7 @@ export const createLink = (req: Request, res: Response, next: NextFunction) => {
         .status(400)
         .json({ message: "slug and destinationUrl must be strings" });
     }
-    const result = linkService.createLink(slug, destinationUrl);
+    const result = await linkService.createLink(slug, destinationUrl);
 
     if (result?.failure === "empty") {
       return res
@@ -28,16 +32,24 @@ export const createLink = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export const listLinks = (req: Request, res: Response, next: NextFunction) => {
+export const listLinks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const result = linkService.getAllLinks();
+    const result = await linkService.getAllLinks();
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
   }
 };
 
-export const getLink = (req: Request, res: Response, next: NextFunction) => {
+export const getLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { slug } = req.params;
 
@@ -45,7 +57,7 @@ export const getLink = (req: Request, res: Response, next: NextFunction) => {
       return res.status(400).json({ message: "Slug type not valid" });
     }
 
-    const result = linkService.getLinkBySlug(slug);
+    const result = await linkService.getLinkBySlug(slug);
 
     if (!result) {
       return res.status(404).json({ message: "Slug not found" });
@@ -57,7 +69,11 @@ export const getLink = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export const updateLink = (req: Request, res: Response, next: NextFunction) => {
+export const updateLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { slug: currentSlug } = req.params;
     const { slug, destinationUrl } = req.body;
@@ -72,7 +88,11 @@ export const updateLink = (req: Request, res: Response, next: NextFunction) => {
         .json({ message: "slug and destinationUrl must be strings" });
     }
 
-    const result = linkService.updateLink(currentSlug, slug, destinationUrl);
+    const result = await linkService.updateLink(
+      currentSlug,
+      slug,
+      destinationUrl,
+    );
 
     if (!result) {
       return res.status(404).json({ message: "Slug not found" });
@@ -90,13 +110,17 @@ export const updateLink = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export const deleteLink = (req: Request, res: Response, next: NextFunction) => {
+export const deleteLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const { slug } = req.params;
     if (Array.isArray(slug)) {
       return res.status(400).json({ message: "Slug must be a string" });
     }
-    const result = linkService.deleteLink(slug);
+    const result = await linkService.deleteLink(slug);
     if (!result) {
       return res.status(404).json({ message: "Slug not found" });
     }

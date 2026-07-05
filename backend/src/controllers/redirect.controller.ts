@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { linkService } from "../services/links.service.js";
 
-export const redirectSlug = (
+export const redirectSlug = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -11,7 +11,7 @@ export const redirectSlug = (
     if (Array.isArray(slug)) {
       return res.status(400).json({ message: "slug type not valid" });
     }
-    const result = linkService.getDestinationUrl(slug);
+    const result = await linkService.getDestinationUrl(slug);
     if (!result) {
       return res.status(404).json({ message: "No link found" });
     }
