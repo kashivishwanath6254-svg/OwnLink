@@ -12,9 +12,6 @@ export const redirectSlug = async (
       return res.status(400).json({ message: "slug type not valid" });
     }
     const result = await linkService.getDestinationUrl(slug);
-    if (!result) {
-      return res.status(404).json({ message: "No link found" });
-    }
     return res.redirect(result);
   } catch (error) {
     return next(error);

@@ -16,16 +16,6 @@ export const createLink = async (
     }
     const result = await linkService.createLink(slug, destinationUrl);
 
-    if (result?.failure === "empty") {
-      return res
-        .status(400)
-        .json({ message: "slug and destinationUrl cannot be empty" });
-    }
-
-    if (result?.failure === "duplicate") {
-      return res.status(409).json({ message: `Slug ${slug} already exists` });
-    }
-
     return res.status(201).json(result);
   } catch (error) {
     return next(error);
@@ -59,10 +49,6 @@ export const getLink = async (
 
     const result = await linkService.getLinkBySlug(slug);
 
-    if (!result) {
-      return res.status(404).json({ message: "Slug not found" });
-    }
-
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
@@ -94,16 +80,6 @@ export const updateLink = async (
       destinationUrl,
     );
 
-    if (!result) {
-      return res.status(404).json({ message: "Slug not found" });
-    }
-    if (result?.failure === "empty") {
-      return res.status(400).json({ message: "body can't be empty string" });
-    }
-    if (result?.failure === "duplicate") {
-      return res.status(409).json({ message: "Slug already exists" });
-    }
-
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
@@ -121,12 +97,7 @@ export const deleteLink = async (
       return res.status(400).json({ message: "Slug must be a string" });
     }
     const result = await linkService.deleteLink(slug);
-    if (!result) {
-      return res.status(404).json({ message: "Slug not found" });
-    }
-    if (result.failure === "empty") {
-      return res.status(400).json({ message: "Slug cannot be empty" });
-    }
+
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
