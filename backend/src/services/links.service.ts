@@ -1,4 +1,6 @@
+import postgres from "postgres";
 import sql from "../db/db.js";
+import AppError from "../errors/AppError.js";
 
 const LINK_COLUMNS = sql`
 id,
@@ -8,8 +10,12 @@ destination_url AS "destinationUrl"
 
 export const linkService = {
   getLinkBySlug: async (slug: string) => {
+    const trimmedSlug = slug.trim();
     const result =
-      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${slug}`;
+      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${trimmedSlug}`;
+    if (result.length === 0) {
+      throw new AppError(404, "Slug not found");
+    }
     return result[0];
   },
 
@@ -19,8 +25,12 @@ export const linkService = {
   },
 
   getDestinationUrl: async (slug: string) => {
+    const trimmedSlug = slug.trim();
     const result =
-      await sql`SELECT destination_url FROM links WHERE slug=${slug}`;
+      await sql`SELECT destination_url FROM links WHERE slug=${trimmedSlug}`;
+    if (result.length === 0) {
+      throw new AppError(404, "Slug not found");
+    }
     return result[0].destination_url;
   },
 
@@ -28,30 +38,47 @@ export const linkService = {
     const newSlug = slug.trim();
     const newUrl = destinationUrl.trim();
 
-    if (newSlug.length === 0 || newUrl.length === 0) {
-      return { failure: "empty" };
+    try {
+      await sql`INSERT INTO links(slug,destination_url) VALUES (${newSlug},${newUrl})`;
+    } catch (err) {
+      if (err instanceof postgres.PostgresError) {
+        if (err.code === "23505") {
+          throw new AppError(409, "Slug already exists");
+        }
+
+        if (err.code === "23514") {
+          if (err.constraint_name === "links_slug_not_blank") {
+            throw new AppError(400, "Slug cannot be empty");
+          }
+
+          if (err.constraint_name === "links_destination_url_not_blank") {
+            throw new AppError(400, "Destination URL cannot be empty");
+          }
+        }
+      }
+      throw err;
     }
-    const result =
-      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${newSlug}`;
-    if (result.length !== 0) {
-      return { failure: "duplicate" };
-    }
-    await sql`INSERT INTO links(slug,destination_url) VALUES (${newSlug},${newUrl})`;
     return { success: "Slug created successfully" };
   },
 
   deleteLink: async (slug: string) => {
-    const newSlug = slug.trim();
+    const trimmedSlug = slug.trim();
 
-    if (newSlug.length === 0) {
-      return { failure: "empty" };
+    try {
+      const result = await sql`DELETE FROM links WHERE slug=${trimmedSlug}`;
+      if (result.count === 0) {
+        throw new AppError(404, "Slug not found");
+      }
+    } catch (err) {
+      if (err instanceof postgres.PostgresError) {
+        if (err.code === "23514") {
+          if (err.constraint_name === "links_slug_not_blank") {
+            throw new AppError(400, "Slug cannot be empty");
+          }
+        }
+      }
+      throw err;
     }
-    const result =
-      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${newSlug}`;
-    if (result.length === 0) {
-      return null;
-    }
-    await sql`DELETE FROM links WHERE slug=${newSlug}`;
     return { success: "Slug deleted successfully" };
   },
 
@@ -60,28 +87,30 @@ export const linkService = {
     const updatedSlug = newSlug.trim();
     const updatedUrl = newUrl.trim();
 
-    if (
-      currentSlug.length === 0 ||
-      updatedSlug.length === 0 ||
-      updatedUrl.length === 0
-    ) {
-      return { failure: "empty" };
+    try {
+      const result =
+        await sql`UPDATE links SET slug=${updatedSlug}, destination_url=${updatedUrl} WHERE slug=${currentSlug}`;
+      if (result.count === 0) {
+        throw new AppError(404, "Slug not found");
+      }
+    } catch (err) {
+      if (err instanceof postgres.PostgresError) {
+        if (err.code === "23505") {
+          throw new AppError(409, "Slug already exists");
+        }
+
+        if (err.code === "23514") {
+          if (err.constraint_name === "links_slug_not_blank") {
+            throw new AppError(400, "Slug cannot be empty");
+          }
+
+          if (err.constraint_name === "links_destination_url_not_blank") {
+            throw new AppError(400, "Destination URL cannot be empty");
+          }
+        }
+      }
+      throw err;
     }
-    const current =
-      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${currentSlug}`;
-    if (current.length === 0) {
-      return null;
-    }
-    const updated =
-      await sql`SELECT ${LINK_COLUMNS} FROM links WHERE slug=${updatedSlug}`;
-    if (current[0].slug === updatedSlug) {
-      await sql`UPDATE links SET destination_url=${updatedUrl} WHERE slug=${updatedSlug}`;
-      return { success: "Updated successfully" };
-    }
-    if (updated.length !== 0) {
-      return { failure: "duplicate" };
-    }
-    await sql`UPDATE links SET slug=${updatedSlug}, destination_url=${updatedUrl} WHERE slug=${currentSlug}`;
     return { success: "Updated successfully" };
   },
 };
