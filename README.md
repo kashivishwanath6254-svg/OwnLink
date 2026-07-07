@@ -60,11 +60,30 @@ OwnLink now uses PostgreSQL as its primary datastore.
 
 Current schema includes:
 
-* Identity primary key
-* Unique slug constraint
-* CHECK constraints preventing blank values
+- Identity primary key
+- Unique slug constraint
+- CHECK constraints preventing blank slugs and destination URLs
 
 The project intentionally relies on PostgreSQL to enforce invariant data integrity instead of duplicating validation logic in application code.
+
+---
+## Database Migrations
+
+The project uses **DBMate** to version and manage database schema changes.
+
+Every schema modification is recorded as a migration, allowing the database to evolve without recreating it or losing existing data.
+
+Common commands:
+
+```bash
+pnpm db:new <migration_name>
+pnpm db:up
+pnpm db:down
+pnpm db:status
+pnpm db:dump
+```
+
+Each migration contains an **up** section that applies the change and a corresponding **down** section that rolls it back. The generated `schema.sql` file is a snapshot of the latest database schema and is committed alongside the migration files.
 
 ---
 
@@ -112,6 +131,21 @@ This approach keeps controllers and middleware independent of PostgreSQL impleme
 
 ---
 
+## Data Integrity
+
+Data integrity is enforced primarily at the database level using PostgreSQL constraints.
+
+Current safeguards include:
+
+- Identity primary key
+- Unique slugs
+- Non-empty slug validation
+- Non-empty destination URL validation
+
+Application code translates database constraint violations into appropriate HTTP responses without duplicating validation logic.
+
+---
+
 # Tech Stack
 
 ### Backend
@@ -124,6 +158,7 @@ This approach keeps controllers and middleware independent of PostgreSQL impleme
 
 ### Tooling
 
+* DBMate
 * pnpm
 * Git
 * GitHub
@@ -136,15 +171,20 @@ This approach keeps controllers and middleware independent of PostgreSQL impleme
 # Project Structure
 
 ```text
-src/
-├── controllers/
+backend/
 ├── db/
-├── errors/
-├── middleware/
-├── routes/
-├── services/
-├── app.ts
-└── server.ts
+│   ├── migrations/
+│   └── schema.sql
+├── src/
+│   ├── controllers/
+│   ├── errors/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── app.ts
+│   └── server.ts
+├── package.json
+└── tsconfig.json
 ```
 
 ---
@@ -166,7 +206,7 @@ src/
 
 Some of the design principles currently followed in the project include:
 
-* PostgreSQL is the source of truth for invariant data validation.
+* PostgreSQL is the source of truth for data integrity.
 * Database constraints are preferred over application-side pre-validation where appropriate.
 * Services translate infrastructure-specific errors into application-level errors.
 * Controllers remain focused on HTTP concerns.
@@ -177,11 +217,25 @@ Some of the design principles currently followed in the project include:
 
 # Getting Started
 
+Create a `.env` file:
+
+```env
+DATABASE_URL=your_database_url
+PORT=3000
+```
+
 Install dependencies:
 
 ```bash
 pnpm install
 ```
+
+Apply the database schema:
+
+```bash
+pnpm db:up
+```
+This command creates the database (if necessary) and applies all pending migrations.
 
 Start the development server:
 
@@ -209,23 +263,24 @@ pnpm run format
 
 ---
 
+
 # Roadmap
 
 ## Completed
 
-* REST API for link management
-* Redirect engine
-* PostgreSQL integration
-* CRUD operations
-* Layered architecture
-* Global error handling
-* Database-backed validation using constraints
-* TypeScript migration
-* GitHub workflow
+- REST API for link management
+- Redirect engine
+- PostgreSQL integration
+- CRUD operations
+- Layered architecture
+- Global error handling
+- Database-backed validation using constraints
+- Database migrations with DBMate
+- TypeScript migration
+- GitHub workflow
 
 ## Next
 
-* Database migrations
 * Request validation middleware
 * Automated testing
 * Logging improvements
