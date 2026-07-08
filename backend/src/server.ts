@@ -1,7 +1,8 @@
 import app from "./app.js";
 import { verifyDatabaseConnection } from "./db/db.js";
+import { config } from "./config.js";
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 verifyDatabaseConnection()
   .then(() => {
