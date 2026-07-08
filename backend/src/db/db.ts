@@ -1,12 +1,7 @@
 import postgres from "postgres";
+import { config } from "../config.js";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  throw new Error("Missing DATABASE_URL environment variable.");
-}
-
-const sql = postgres(DATABASE_URL);
+const sql = postgres(config.databaseUrl);
 
 export async function verifyDatabaseConnection() {
   await sql`SELECT NOW()`;
