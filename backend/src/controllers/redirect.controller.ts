@@ -7,10 +7,7 @@ export const redirectSlug = async (
   next: NextFunction,
 ) => {
   try {
-    const { slug } = req.params;
-    if (Array.isArray(slug)) {
-      return res.status(400).json({ message: "slug type not valid" });
-    }
+    const { slug } = req.params as { slug: string };
     const result = await linkService.getDestinationUrl(slug);
     return res.redirect(result);
   } catch (error) {

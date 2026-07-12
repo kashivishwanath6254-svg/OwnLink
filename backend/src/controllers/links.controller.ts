@@ -9,11 +9,6 @@ export const createLink = async (
   try {
     const { slug, destinationUrl } = req.body;
 
-    if (typeof slug !== "string" || typeof destinationUrl !== "string") {
-      return res
-        .status(400)
-        .json({ message: "slug and destinationUrl must be strings" });
-    }
     const result = await linkService.createLink(slug, destinationUrl);
 
     return res.status(201).json(result);
@@ -41,11 +36,7 @@ export const getLink = async (
   next: NextFunction,
 ) => {
   try {
-    const { slug } = req.params;
-
-    if (Array.isArray(slug)) {
-      return res.status(400).json({ message: "Slug type not valid" });
-    }
+    const { slug } = req.params as { slug: string };
 
     const result = await linkService.getLinkBySlug(slug);
 
@@ -61,18 +52,8 @@ export const updateLink = async (
   next: NextFunction,
 ) => {
   try {
-    const { slug: currentSlug } = req.params;
+    const { slug: currentSlug } = req.params as { slug: string };
     const { slug, destinationUrl } = req.body;
-
-    if (Array.isArray(currentSlug)) {
-      return res.status(400).json({ message: "Slug type not valid" });
-    }
-
-    if (typeof slug !== "string" || typeof destinationUrl !== "string") {
-      return res
-        .status(400)
-        .json({ message: "slug and destinationUrl must be strings" });
-    }
 
     const result = await linkService.updateLink(
       currentSlug,
@@ -92,10 +73,8 @@ export const deleteLink = async (
   next: NextFunction,
 ) => {
   try {
-    const { slug } = req.params;
-    if (Array.isArray(slug)) {
-      return res.status(400).json({ message: "Slug must be a string" });
-    }
+    const { slug } = req.params as { slug: string };
+
     const result = await linkService.deleteLink(slug);
 
     return res.status(200).json(result);
