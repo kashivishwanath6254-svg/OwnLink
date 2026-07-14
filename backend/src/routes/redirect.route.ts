@@ -1,7 +1,7 @@
 import express from "express";
 import { redirectSlug } from "../controllers/redirect.controller.js";
 import { validate } from "../middleware/validation.middleware.js";
-import { slugParamSchema } from "../schemas/slugParam.Schema.js";
+import { slugParamSchema } from "../schemas/index.js";
 
 const router = express.Router();
 

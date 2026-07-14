@@ -1,8 +1,13 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
+import type {
+  CreateLinkBody,
+  SlugParams,
+  UpdateLinkBody,
+} from "../schemas/index.js";
 import { linkService } from "../services/links.service.js";
 
 export const createLink = async (
-  req: Request,
+  req: Request<Record<string, never>, unknown, CreateLinkBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -31,12 +36,12 @@ export const listLinks = async (
 };
 
 export const getLink = async (
-  req: Request,
+  req: Request<SlugParams>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { slug } = req.params as { slug: string };
+    const { slug } = req.params;
 
     const result = await linkService.getLinkBySlug(slug);
 
@@ -47,19 +52,14 @@ export const getLink = async (
 };
 
 export const updateLink = async (
-  req: Request,
+  req: Request<SlugParams, unknown, UpdateLinkBody>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { slug: currentSlug } = req.params as { slug: string };
-    const { slug, destinationUrl } = req.body;
+    const { slug: currentSlug } = req.params;
 
-    const result = await linkService.updateLink(
-      currentSlug,
-      slug,
-      destinationUrl,
-    );
+    const result = await linkService.updateLink(currentSlug, req.body);
 
     return res.status(200).json(result);
   } catch (error) {
@@ -68,12 +68,12 @@ export const updateLink = async (
 };
 
 export const deleteLink = async (
-  req: Request,
+  req: Request<SlugParams>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { slug } = req.params as { slug: string };
+    const { slug } = req.params;
 
     const result = await linkService.deleteLink(slug);
 

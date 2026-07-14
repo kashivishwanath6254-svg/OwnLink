@@ -7,9 +7,11 @@ import {
   updateLink,
 } from "../controllers/links.controller.js";
 import { validate } from "../middleware/validation.middleware.js";
-import { createLinkSchema } from "../schemas/createLink.schema.js";
-import { slugParamSchema } from "../schemas/slugParam.Schema.js";
-import { updateLinkSchema } from "../schemas/updateLink.schema.js";
+import {
+  createLinkSchema,
+  updateLinkSchema,
+  slugParamSchema,
+} from "../schemas/index.js";
 
 const router = express.Router();
 
