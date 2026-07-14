@@ -1,19 +1,19 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
+import type {
+  CreateLinkBody,
+  SlugParams,
+  UpdateLinkBody,
+} from "../schemas/index.js";
 import { linkService } from "../services/links.service.js";
 
 export const createLink = async (
-  req: Request,
+  req: Request<Record<string, never>, unknown, CreateLinkBody>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     const { slug, destinationUrl } = req.body;
 
-    if (typeof slug !== "string" || typeof destinationUrl !== "string") {
-      return res
-        .status(400)
-        .json({ message: "slug and destinationUrl must be strings" });
-    }
     const result = await linkService.createLink(slug, destinationUrl);
 
     return res.status(201).json(result);
@@ -36,16 +36,12 @@ export const listLinks = async (
 };
 
 export const getLink = async (
-  req: Request,
+  req: Request<SlugParams>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     const { slug } = req.params;
-
-    if (Array.isArray(slug)) {
-      return res.status(400).json({ message: "Slug type not valid" });
-    }
 
     const result = await linkService.getLinkBySlug(slug);
 
@@ -56,29 +52,14 @@ export const getLink = async (
 };
 
 export const updateLink = async (
-  req: Request,
+  req: Request<SlugParams, unknown, UpdateLinkBody>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     const { slug: currentSlug } = req.params;
-    const { slug, destinationUrl } = req.body;
 
-    if (Array.isArray(currentSlug)) {
-      return res.status(400).json({ message: "Slug type not valid" });
-    }
-
-    if (typeof slug !== "string" || typeof destinationUrl !== "string") {
-      return res
-        .status(400)
-        .json({ message: "slug and destinationUrl must be strings" });
-    }
-
-    const result = await linkService.updateLink(
-      currentSlug,
-      slug,
-      destinationUrl,
-    );
+    const result = await linkService.updateLink(currentSlug, req.body);
 
     return res.status(200).json(result);
   } catch (error) {
@@ -87,15 +68,13 @@ export const updateLink = async (
 };
 
 export const deleteLink = async (
-  req: Request,
+  req: Request<SlugParams>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     const { slug } = req.params;
-    if (Array.isArray(slug)) {
-      return res.status(400).json({ message: "Slug must be a string" });
-    }
+
     const result = await linkService.deleteLink(slug);
 
     return res.status(200).json(result);

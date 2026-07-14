@@ -5,7 +5,7 @@ export const errorHandler = (
   err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
   console.error(
     "=================================== Unexpected Error =====================================",

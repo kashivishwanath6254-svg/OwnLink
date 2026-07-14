@@ -82,14 +82,28 @@ export const linkService = {
     return { success: "Slug deleted successfully" };
   },
 
-  updateLink: async (slug: string, newSlug: string, newUrl: string) => {
+  updateLink: async (
+    slug: string,
+    updates: { slug?: string; destinationUrl?: string },
+  ) => {
     const currentSlug = slug.trim();
-    const updatedSlug = newSlug.trim();
-    const updatedUrl = newUrl.trim();
+
+    const values: Record<string, string> = {};
+
+    if (updates.slug !== undefined) {
+      values.slug = updates.slug.trim();
+    }
+
+    if (updates.destinationUrl !== undefined) {
+      values.destination_url = updates.destinationUrl.trim();
+    }
 
     try {
-      const result =
-        await sql`UPDATE links SET slug=${updatedSlug}, destination_url=${updatedUrl} WHERE slug=${currentSlug}`;
+      const result = await sql`
+    UPDATE links
+    SET ${sql(values)}
+    WHERE slug = ${currentSlug}
+  `;
       if (result.count === 0) {
         throw new AppError(404, "Slug not found");
       }
