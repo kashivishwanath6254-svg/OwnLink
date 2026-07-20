@@ -4,7 +4,7 @@ OwnLink is a backend-focused URL redirection service built to explore how modern
 
 Rather than treating QR codes as the product, OwnLink starts with ownership of redirects and builds upward from there. The project is developed incrementally with a strong focus on understanding backend architecture, API design, database design, TypeScript, and system design fundamentals before introducing higher-level abstractions.
 
-The long-term vision includes features such as analytics, QR code generation, authentication, and custom domains, but the current focus is on building a solid backend foundation.
+The long-term vision is to build a link infrastructure platform that prioritizes user ownership and portability while supporting features such as analytics, QR code generation, authentication, and custom domains.
 
 ---
 
@@ -22,6 +22,50 @@ Supported operations include:
 * Update existing links
 * Delete links
 
+### Automatic Slug Generation
+
+Clients never provide a slug.
+
+Instead, the backend automatically generates a unique short slug for every new link and transparently retries if a collision occurs.
+
+This keeps the API simple while ensuring slug uniqueness remains a server-side responsibility.
+
+Example request:
+
+```http
+POST /links
+```
+
+```json
+{
+  "destinationUrl": "https://google.com"
+}
+```
+
+Example response:
+
+```json
+{
+  "id": 1,
+  "slug": "Ab3X9kQ",
+  "destinationUrl": "https://google.com"
+}
+```
+
+Updating a link only requires changing the destination URL.
+
+```http
+PATCH /links/Ab3X9kQ
+```
+
+```json
+{
+  "destinationUrl": "https://google.ai"
+}
+```
+
+Slugs are immutable after creation.
+
 ---
 
 ## Redirect Engine
@@ -31,7 +75,7 @@ Redirect users using a short slug.
 Example:
 
 ```text
-/google
+/Ab3X9kQ
 ```
 
 ↓
@@ -44,29 +88,63 @@ Current flow:
 
 ```text
 Request
-↓
+    ↓
 Extract slug
-↓
+    ↓
 Lookup destination
-↓
+    ↓
 HTTP Redirect
 ```
 
 ---
 
+## Request Validation
+
+Incoming requests are validated using **Zod** before reaching the controller layer.
+
+Current request flow:
+
+```text
+HTTP Request
+    ↓
+Validation Middleware
+    ↓
+Controller
+    ↓
+Service
+    ↓
+PostgreSQL
+    ↓
+Global Error Handler
+    ↓
+HTTP Response
+```
+
+Validation provides:
+
+* Validation at the HTTP boundary
+* Reusable request schemas
+* Type-safe request bodies using `z.infer`
+* Consistent HTTP 400 responses
+* Controllers receive validated data only
+
+---
+
 ## PostgreSQL Persistence
 
-OwnLink now uses PostgreSQL as its primary datastore.
+OwnLink uses PostgreSQL as its primary datastore.
 
 Current schema includes:
 
-- Identity primary key
-- Unique slug constraint
-- CHECK constraints preventing blank slugs and destination URLs
+* Identity primary key
+* Unique slug constraint
+* CHECK constraints preventing blank slugs
+* CHECK constraints preventing blank destination URLs
 
-The project intentionally relies on PostgreSQL to enforce invariant data integrity instead of duplicating validation logic in application code.
+The project intentionally relies on PostgreSQL to enforce data integrity instead of duplicating database validation inside application code.
 
 ---
+
 ## Database Migrations
 
 The project uses **DBMate** to version and manage database schema changes.
@@ -83,34 +161,37 @@ pnpm db:status
 pnpm db:dump
 ```
 
-Each migration contains an **up** section that applies the change and a corresponding **down** section that rolls it back. The generated `schema.sql` file is a snapshot of the latest database schema and is committed alongside the migration files.
+Each migration contains an **up** section that applies the change and a corresponding **down** section that rolls it back.
+
+The generated `schema.sql` file represents the latest database schema and is committed alongside migration files.
 
 ---
 
 ## Layered Architecture
 
-The application follows a layered architecture separating HTTP concerns from business logic and database access.
+The application follows a layered architecture separating transport concerns, business logic, and persistence.
 
 ```text
 HTTP Request
-↓
+    ↓
+Validation Middleware
+    ↓
 Controller
-↓
+    ↓
 Service
-↓
+    ↓
 PostgreSQL
-↓
-Service
-↓
+    ↓
 Global Error Handler
-↓
+    ↓
 HTTP Response
 ```
 
 Responsibilities are divided as follows:
 
-* **Controllers** handle HTTP requests and responses.
-* **Services** contain business logic and all database interaction.
+* **Validation middleware** validates incoming HTTP requests.
+* **Controllers** coordinate HTTP requests and responses.
+* **Services** contain business logic and database interaction.
 * **PostgreSQL** enforces data integrity.
 * **Global error middleware** converts application errors into HTTP responses.
 
@@ -118,45 +199,45 @@ Responsibilities are divided as follows:
 
 ## Database Error Handling
 
-The project translates PostgreSQL-specific errors into application-level errors.
+Infrastructure-specific database errors are translated into application-level HTTP errors.
 
 Examples include:
 
-* Duplicate slug → **409 Conflict**
-* Empty slug → **400 Bad Request**
 * Empty destination URL → **400 Bad Request**
 * Missing resource → **404 Not Found**
+* Slug generation exhausted after retry limit → **500 Internal Server Error**
 
-This approach keeps controllers and middleware independent of PostgreSQL implementation details.
+This keeps PostgreSQL implementation details isolated from the rest of the application.
 
 ---
 
 ## Data Integrity
 
-Data integrity is enforced primarily at the database level using PostgreSQL constraints.
+Data integrity is enforced primarily at the database layer.
 
 Current safeguards include:
 
-- Identity primary key
-- Unique slugs
-- Non-empty slug validation
-- Non-empty destination URL validation
+* Identity primary key
+* Unique slugs
+* Non-empty slug validation
+* Non-empty destination URL validation
 
-Application code translates database constraint violations into appropriate HTTP responses without duplicating validation logic.
+Application code focuses on business rules while PostgreSQL guarantees data consistency.
 
 ---
 
 # Tech Stack
 
-### Backend
+## Backend
 
 * Node.js
 * Express 5
 * TypeScript
 * PostgreSQL
-* `postgres` (PostgreSQL client)
+* postgres.js
+* Zod
 
-### Tooling
+## Tooling
 
 * DBMate
 * pnpm
@@ -177,10 +258,13 @@ backend/
 │   └── schema.sql
 ├── src/
 │   ├── controllers/
+│   ├── db/
 │   ├── errors/
 │   ├── middleware/
 │   ├── routes/
+│   ├── schemas/
 │   ├── services/
+│   ├── utils/
 │   ├── app.ts
 │   └── server.ts
 ├── package.json
@@ -191,27 +275,29 @@ backend/
 
 # API Endpoints
 
-| Method | Endpoint       | Description                     |
-| ------ | -------------- | ------------------------------- |
-| GET    | `/links`       | Retrieve all links              |
-| GET    | `/links/:slug` | Retrieve a single link          |
-| POST   | `/links`       | Create a new link               |
-| PATCH  | `/links/:slug` | Update an existing link         |
-| DELETE | `/links/:slug` | Delete a link                   |
-| GET    | `/:slug`       | Redirect to the destination URL |
+| Method | Endpoint       | Description                 |
+| ------ | -------------- | --------------------------- |
+| GET    | `/links`       | Retrieve all links          |
+| GET    | `/links/:slug` | Retrieve a single link      |
+| POST   | `/links`       | Create a new short link     |
+| PATCH  | `/links/:slug` | Update destination URL      |
+| DELETE | `/links/:slug` | Delete a link               |
+| GET    | `/:slug`       | Redirect to destination URL |
 
 ---
 
 # Architectural Decisions
 
-Some of the design principles currently followed in the project include:
+Current design principles include:
 
 * PostgreSQL is the source of truth for data integrity.
-* Database constraints are preferred over application-side pre-validation where appropriate.
+* Request validation happens at the HTTP boundary.
+* Slugs are generated exclusively by the server.
+* Clients never control slug generation.
 * Services translate infrastructure-specific errors into application-level errors.
 * Controllers remain focused on HTTP concerns.
-* Business logic and database interaction are isolated within the service layer.
-* SQL column aliases are used to maintain camelCase objects in TypeScript while preserving snake_case database naming.
+* Business logic is isolated within the service layer.
+* SQL column aliases preserve camelCase objects while maintaining snake_case database naming.
 
 ---
 
@@ -230,12 +316,11 @@ Install dependencies:
 pnpm install
 ```
 
-Apply the database schema:
+Apply migrations:
 
 ```bash
 pnpm db:up
 ```
-This command creates the database (if necessary) and applies all pending migrations.
 
 Start the development server:
 
@@ -243,7 +328,7 @@ Start the development server:
 pnpm run dev
 ```
 
-Build the project:
+Build:
 
 ```bash
 pnpm run build
@@ -263,27 +348,30 @@ pnpm run format
 
 ---
 
-
 # Roadmap
 
 ## Completed
 
-- REST API for link management
-- Redirect engine
-- PostgreSQL integration
-- CRUD operations
-- Layered architecture
-- Global error handling
-- Database-backed validation using constraints
-- Database migrations with DBMate
-- TypeScript migration
-- GitHub workflow
+* Express server setup
+* Redirect engine
+* CRUD operations
+* Service layer architecture
+* PostgreSQL integration
+* Database migrations with DBMate
+* Configuration management
+* Request validation with Zod
+* Automatic server-side slug generation
+* Layered architecture
+* Centralized error handling
+* TypeScript migration
+* GitHub workflow
 
 ## Next
 
-* Request validation middleware
+* API hardening
 * Automated testing
-* Logging improvements
+* Request logging
+* Performance improvements
 
 ## Future
 
@@ -298,7 +386,9 @@ pnpm run format
 
 # Status
 
-OwnLink is an actively developed learning project focused on backend engineering.
+OwnLink is an actively developed backend engineering project focused on understanding how production systems are designed.
 
-The current implementation provides a PostgreSQL-backed REST API with a layered architecture, database-enforced data integrity, and centralized error handling. Future development will continue expanding the project's capabilities while maintaining a strong emphasis on understanding the underlying systems rather than relying on heavy abstractions.
+The current implementation provides a PostgreSQL-backed REST API featuring layered architecture, request validation, automatic server-side slug generation, centralized error handling, and database-enforced data integrity.
+
+Future development will continue expanding the platform while maintaining a strong emphasis on learning the architectural decisions behind production backend systems rather than simply adding features.
 
