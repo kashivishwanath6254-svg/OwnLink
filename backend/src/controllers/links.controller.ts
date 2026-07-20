@@ -12,9 +12,9 @@ export const createLink = async (
   next: NextFunction,
 ) => {
   try {
-    const { slug, destinationUrl } = req.body;
+    const { destinationUrl } = req.body;
 
-    const result = await linkService.createLink(slug, destinationUrl);
+    const result = await linkService.createLink(destinationUrl);
 
     return res.status(201).json(result);
   } catch (error) {

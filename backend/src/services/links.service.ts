@@ -1,12 +1,15 @@
 import postgres from "postgres";
 import sql from "../db/db.js";
 import AppError from "../errors/AppError.js";
+import { generateSlug } from "../utils/slug.js";
+import { UpdateLinkBody } from "../schemas/index.js";
 
 const LINK_COLUMNS = sql`
 id,
 slug,
 destination_url AS "destinationUrl"
 `;
+const MAX_RETRIES = 5;
 
 export const linkService = {
   getLinkBySlug: async (slug: string) => {
@@ -34,31 +37,36 @@ export const linkService = {
     return result[0].destination_url;
   },
 
-  createLink: async (slug: string, destinationUrl: string) => {
-    const newSlug = slug.trim();
+  createLink: async (destinationUrl: string) => {
     const newUrl = destinationUrl.trim();
 
-    try {
-      await sql`INSERT INTO links(slug,destination_url) VALUES (${newSlug},${newUrl})`;
-    } catch (err) {
-      if (err instanceof postgres.PostgresError) {
-        if (err.code === "23505") {
-          throw new AppError(409, "Slug already exists");
-        }
-
-        if (err.code === "23514") {
-          if (err.constraint_name === "links_slug_not_blank") {
-            throw new AppError(400, "Slug cannot be empty");
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      const newSlug = generateSlug();
+      try {
+        return await sql`INSERT INTO links(slug,destination_url) VALUES (${newSlug},${newUrl}) RETURNING ${LINK_COLUMNS}`;
+      } catch (err) {
+        if (err instanceof postgres.PostgresError) {
+          if (err.code === "23505") {
+            continue;
           }
 
-          if (err.constraint_name === "links_destination_url_not_blank") {
-            throw new AppError(400, "Destination URL cannot be empty");
+          if (err.code === "23514") {
+            if (err.constraint_name === "links_slug_not_blank") {
+              throw new AppError(400, "Slug cannot be empty");
+            }
+
+            if (err.constraint_name === "links_destination_url_not_blank") {
+              throw new AppError(400, "Destination URL cannot be empty");
+            }
           }
         }
+        throw err;
       }
-      throw err;
     }
-    return { success: "Slug created successfully" };
+    throw new AppError(
+      500,
+      "Failed to generate a unique slug. Please try again.",
+    );
   },
 
   deleteLink: async (slug: string) => {
@@ -82,17 +90,10 @@ export const linkService = {
     return { success: "Slug deleted successfully" };
   },
 
-  updateLink: async (
-    slug: string,
-    updates: { slug?: string; destinationUrl?: string },
-  ) => {
+  updateLink: async (slug: string, updates: UpdateLinkBody) => {
     const currentSlug = slug.trim();
 
     const values: Record<string, string> = {};
-
-    if (updates.slug !== undefined) {
-      values.slug = updates.slug.trim();
-    }
 
     if (updates.destinationUrl !== undefined) {
       values.destination_url = updates.destinationUrl.trim();
@@ -109,10 +110,6 @@ export const linkService = {
       }
     } catch (err) {
       if (err instanceof postgres.PostgresError) {
-        if (err.code === "23505") {
-          throw new AppError(409, "Slug already exists");
-        }
-
         if (err.code === "23514") {
           if (err.constraint_name === "links_slug_not_blank") {
             throw new AppError(400, "Slug cannot be empty");
