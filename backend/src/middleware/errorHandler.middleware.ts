@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import AppError from "../errors/AppError.js";
+import { logError } from "../utils/logger.js";
+
+type HttpError = Error & {
+  status?: number
+}
 
 export const errorHandler = (
   err: unknown,
@@ -7,32 +12,24 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
-  console.error(
-    "=================================== Unexpected Error =====================================",
-  );
-  console.error("\nTime    :", new Date().toISOString());
-  console.error("Method  :", req.method);
-  console.error("URL     :", req.originalUrl);
   if (err instanceof AppError) {
-    console.error("\nType    :", err.name);
-    console.error("Message :", err.message);
-    console.error("Status  :", err.statusCode);
-    console.error("\nStack   :", err.stack);
-    console.error(
-      "==========================================================================================",
-    );
-    return res.status(err.statusCode).json({ error: err.message });
+    logError({
+      title: "Application Error",
+      req,
+      error: err,
+      status: err.statusCode,
+    })
+    return res.status(err.statusCode).json({ message: err.message });
   }
   if (err instanceof Error) {
-    console.error("\nType    :", err.name);
-    console.error("Message :", err.message);
-    console.error("\nStack   :", err.stack);
-    // console.error("\nError message:", err);
+    logError({
+      title: "Unexpected Error",
+      req,
+      error: err,
+    })
+    return res.status(500).json({ message: "Internal server error" })
   } else {
     console.error("\nThrown Error :", err);
   }
-  console.error(
-    "==========================================================================================",
-  );
-  return res.status(500).json({ error: "Internal server error" });
+  return res.status(500).json({ message: "Internal server error" });
 };
