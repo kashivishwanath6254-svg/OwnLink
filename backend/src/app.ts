@@ -5,6 +5,7 @@ import linksRouter from "./routes/links.route.js";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 
 const app = express();
+app.disable("x-powered-by")
 app.use(express.json());
 
 //Routes
