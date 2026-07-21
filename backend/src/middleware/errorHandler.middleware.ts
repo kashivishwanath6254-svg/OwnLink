@@ -22,6 +22,21 @@ export const errorHandler = (
     return res.status(err.statusCode).json({ message: err.message });
   }
   if (err instanceof Error) {
+
+    const httpError: HttpError = err;
+
+    if (httpError.status === 413) {
+      logError({
+        title: "Client Error",
+        req,
+        error: err,
+        status: httpError.status,
+      })
+      return res.status(httpError.status).json({
+        message: "Request body is too large.",
+      })
+    }
+
     logError({
       title: "Unexpected Error",
       req,
