@@ -3,13 +3,14 @@ import { slugSchema, destinationUrlSchema } from "./common.schema.js";
 
 export const createLinkSchema = z.object({
   destinationUrl: destinationUrlSchema,
-});
+}).strict();
 export type CreateLinkBody = z.infer<typeof createLinkSchema>;
 
 export const updateLinkSchema = z
   .object({
     destinationUrl: destinationUrlSchema,
   })
+  .strict()
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
