@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import AppError from "../errors/AppError.js";
 import { logError } from "../utils/logger.js";
 
-type HttpError = Error & {
+type ExpressHttpError = Error & {
   status?: number
+  type?: string,
 }
 
 export const errorHandler = (
@@ -23,7 +24,17 @@ export const errorHandler = (
   }
   if (err instanceof Error) {
 
-    const httpError: HttpError = err;
+    const httpError: ExpressHttpError = err;
+
+    if (httpError.status === 400 && httpError.type === "entity.parse.failed") {
+      logError({
+        title: "Client Error",
+        req,
+        error: err,
+        status: httpError.status,
+      })
+      return res.status(httpError.status).json({ message: "Malformed JSON" })
+    }
 
     if (httpError.status === 413) {
       logError({
