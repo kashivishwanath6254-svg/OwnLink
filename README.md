@@ -1,14 +1,53 @@
 # OwnLink
 
-OwnLink is a backend-focused URL redirection service built to explore how modern link infrastructure works.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5-black?logo=express)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-Rather than treating QR codes as the product, OwnLink starts with ownership of redirects and builds upward from there. The project is developed incrementally with a strong focus on understanding backend architecture, API design, database design, TypeScript, and system design fundamentals before introducing higher-level abstractions.
+> A backend-first URL redirection platform exploring user-owned redirects through modern backend architecture.
 
-The long-term vision is to build a link infrastructure platform that prioritizes user ownership and portability while supporting features such as analytics, QR code generation, authentication, and custom domains.
+OwnLink is a backend-first URL redirection platform that explores how modern redirect infrastructure can be designed with scalability, maintainability, and user ownership in mind.
+
+The project is developed incrementally to explore production backend engineering concepts—including API design, layered architecture, database design, validation, and TypeScript—while laying the foundation for a platform that prioritizes portable, user-owned redirects.
+
+Although the long-term vision includes authentication, analytics, QR code generation, custom domains, and self-hosting, the current focus is building a robust backend foundation before introducing higher-level features.
 
 ---
 
-# Current Features
+# Why OwnLink?
+
+Many dynamic QR code platforms create vendor lock-in.
+
+Businesses print QR codes on menus, posters, packaging, or advertisements because the destination behind the code can be updated later without reprinting.
+
+The downside is ownership.
+
+If a subscription expires or a provider shuts down, those QR codes may stop working, forcing businesses to continue paying simply to preserve redirects they already created.
+
+OwnLink explores a different approach.
+
+The long-term goal is to build redirect infrastructure where users own their redirects. Instead of competing through lock-in, OwnLink aims to support portability through features such as exports, self-hosting, and migration tools.
+
+This repository focuses on building the engineering foundation required to support that vision.
+
+---
+
+# Features
+
+## Feature Summary
+
+| Capability | Description | Status |
+|------------|-------------|--------|
+| CRUD API | Manage redirect links | ✅ |
+| Redirect Engine | Resolve short links to destinations | ✅ |
+| PostgreSQL Persistence | Persistent storage with database constraints | ✅ |
+| DBMate Migrations | Version-controlled schema changes | ✅ |
+| Automatic Slug Generation | Server-generated immutable slugs | ✅ |
+| Request Validation | Zod validation at the HTTP boundary | ✅ |
+| Layered Architecture | Controller → Service → Database | ✅ |
+| Error Handling | Centralized application errors | ✅ |
+| Security | Helmet and API hardening | ✅ |
 
 ## Link Management
 
@@ -72,28 +111,19 @@ Slugs are immutable after creation.
 
 Redirect users using a short slug.
 
-Example:
-
-```text
-/Ab3X9kQ
-```
-
-↓
-
-```text
-https://google.com
-```
-
 Current flow:
 
-```text
-Request
-    ↓
-Extract slug
-    ↓
-Lookup destination
-    ↓
-HTTP Redirect
+```mermaid
+flowchart TD
+
+A[GET /:slug]
+    --> B[Extract slug]
+    --> C[Lookup destination]
+    --> D{Destination Found?}
+
+D -->|Yes| E[302 Redirect]
+
+D -->|No| F[404 Not Found]
 ```
 
 ---
@@ -104,20 +134,21 @@ Incoming requests are validated using **Zod** before reaching the controller lay
 
 Current request flow:
 
-```text
-HTTP Request
-    ↓
-Validation Middleware
-    ↓
-Controller
-    ↓
-Service
-    ↓
-PostgreSQL
-    ↓
-Global Error Handler
-    ↓
-HTTP Response
+```mermaid
+flowchart TD
+
+A[HTTP Request]
+    --> B[Validation Middleware]
+
+B -->|Valid| C[Controller]
+
+C --> D[Service]
+
+D --> E[(PostgreSQL)]
+
+E --> F[HTTP Response]
+
+B -->|Invalid| G[400 Bad Request]
 ```
 
 Validation provides:
@@ -169,31 +200,36 @@ The generated `schema.sql` file represents the latest database schema and is com
 
 ## Layered Architecture
 
-The application follows a layered architecture separating transport concerns, business logic, and persistence.
+OwnLink follows a layered architecture that separates HTTP concerns, business logic, validation, and persistence.
 
-```text
-HTTP Request
-    ↓
-Validation Middleware
-    ↓
-Controller
-    ↓
-Service
-    ↓
-PostgreSQL
-    ↓
-Global Error Handler
-    ↓
-HTTP Response
+```mermaid
+flowchart TD
+
+A[HTTP Request]
+    --> B[Validation Middleware]
+
+B -->|Valid| C[Controller]
+
+B -->|Invalid| G[400 Bad Request]
+
+C --> D[Service]
+
+D --> E[(PostgreSQL)]
+
+E --> D
+
+D --> F[HTTP Response]
 ```
 
-Responsibilities are divided as follows:
+Each layer has a single responsibility:
 
-* **Validation middleware** validates incoming HTTP requests.
-* **Controllers** coordinate HTTP requests and responses.
-* **Services** contain business logic and database interaction.
-* **PostgreSQL** enforces data integrity.
-* **Global error middleware** converts application errors into HTTP responses.
+| Layer | Responsibility |
+|--------|----------------|
+| Validation | Validate incoming requests |
+| Controller | Handle HTTP requests and responses |
+| Service | Business logic and orchestration |
+| PostgreSQL | Persistent storage and data integrity |
+| Error Handler | Convert application errors into HTTP responses |
 
 ---
 
@@ -230,22 +266,29 @@ Application code focuses on business rules while PostgreSQL guarantees data cons
 
 ## Backend
 
-* Node.js
-* Express 5
-* TypeScript
-* PostgreSQL
-* postgres.js
-* Zod
+- Node.js
+- Express 5
+- TypeScript
+
+## Database
+
+- PostgreSQL
+- postgres.js
+- DBMate
+
+## Validation & Security
+
+- Zod
+- Helmet
 
 ## Tooling
 
-* DBMate
-* pnpm
-* Git
-* GitHub
-* ESLint
-* Prettier
-* TSX
+- pnpm
+- Git
+- GitHub
+- ESLint
+- Prettier
+- TSX
 
 ---
 
@@ -273,31 +316,44 @@ backend/
 
 ---
 
-# API Endpoints
+### Folder Responsibilities
 
-| Method | Endpoint       | Description                 |
-| ------ | -------------- | --------------------------- |
-| GET    | `/links`       | Retrieve all links          |
-| GET    | `/links/:slug` | Retrieve a single link      |
-| POST   | `/links`       | Create a new short link     |
-| PATCH  | `/links/:slug` | Update destination URL      |
-| DELETE | `/links/:slug` | Delete a link               |
-| GET    | `/:slug`       | Redirect to destination URL |
+| Folder | Responsibility |
+|----------|----------------|
+| `controllers/` | Handle HTTP requests and responses |
+| `services/` | Contain business logic |
+| `middleware/` | Cross-cutting concerns such as validation and error handling |
+| `schemas/` | Zod request validation schemas |
+| `db/` | Database access and connection management |
+| `errors/` | Custom application errors |
+| `utils/` | Shared utilities and helper functions |
 
 ---
 
-# Architectural Decisions
+# API Endpoints
 
-Current design principles include:
+| Method | Endpoint       | Description              |
+| ------ | -------------- | ------------------------ |
+| GET    | `/links`       | Retrieve all links       |
+| GET    | `/links/:slug` | Retrieve a single link   |
+| POST   | `/links`       | Create a new short link  |
+| PATCH  | `/links/:slug` | Update destination URL   |
+| DELETE | `/links/:slug` | Delete a link            |
+| GET    | `/:slug`       | Redirect to destination  |
 
-* PostgreSQL is the source of truth for data integrity.
-* Request validation happens at the HTTP boundary.
-* Slugs are generated exclusively by the server.
-* Clients never control slug generation.
-* Services translate infrastructure-specific errors into application-level errors.
-* Controllers remain focused on HTTP concerns.
-* Business logic is isolated within the service layer.
-* SQL column aliases preserve camelCase objects while maintaining snake_case database naming.
+---
+
+# Design Principles
+
+The current implementation is guided by several architectural principles:
+
+- PostgreSQL is the source of truth for data integrity.
+- Request validation happens at the HTTP boundary.
+- Slugs are generated exclusively by the server.
+- Business logic is isolated from transport concerns.
+- Infrastructure-specific errors are translated into application-level errors.
+- Controllers remain lightweight and focused on HTTP.
+- Database naming conventions remain independent from application models through SQL aliases.
 
 ---
 
@@ -308,6 +364,12 @@ Create a `.env` file:
 ```env
 DATABASE_URL=your_database_url
 PORT=3000
+```
+
+Go into backend folder:
+
+```bash
+cd OwnLink/backend
 ```
 
 Install dependencies:
@@ -352,43 +414,59 @@ pnpm run format
 
 ## Completed
 
-* Express server setup
-* Redirect engine
-* CRUD operations
-* Service layer architecture
-* PostgreSQL integration
-* Database migrations with DBMate
-* Configuration management
-* Request validation with Zod
-* Automatic server-side slug generation
-* Layered architecture
-* Centralized error handling
-* TypeScript migration
-* GitHub workflow
+- Express server setup
+- Redirect engine
+- CRUD operations
+- Service layer architecture
+- PostgreSQL integration
+- Database migrations with DBMate
+- Configuration management
+- Request validation with Zod
+- Automatic server-side slug generation
+- Layered architecture
+- Centralized error handling
+- API hardening
+- Helmet security headers
+- TypeScript migration
+- GitHub workflow
 
 ## Next
 
-* API hardening
-* Automated testing
-* Request logging
-* Performance improvements
+- Automated testing
+- Request logging improvements
+- CI/CD pipeline
+- Docker support
 
 ## Future
 
-* User authentication
-* User-owned links
-* Analytics
-* QR code generation
-* Custom domains
-* Role-based authorization
+- User authentication
+- User-owned links
+- Analytics
+- QR code generation
+- Custom domains
+- Role-based authorization
+- Export/import tools
+- Self-hosted deployment
 
 ---
 
-# Status
+# Learning Goals
 
-OwnLink is an actively developed backend engineering project focused on understanding how production systems are designed.
+OwnLink is intentionally developed incrementally.
 
-The current implementation provides a PostgreSQL-backed REST API featuring layered architecture, request validation, automatic server-side slug generation, centralized error handling, and database-enforced data integrity.
+Rather than implementing every planned feature immediately, each milestone focuses on a specific backend engineering concept.
 
-Future development will continue expanding the platform while maintaining a strong emphasis on learning the architectural decisions behind production backend systems rather than simply adding features.
+Areas currently explored include:
+
+- API design
+- Layered architecture
+- Database design
+- Request validation
+- Error handling
+- Configuration management
+- Security
+- TypeScript best practices
+- Maintainable backend development
+
+The goal is to understand why production systems are designed the way they are while gradually evolving OwnLink into a fully featured redirect platform.
 
