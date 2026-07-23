@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { slugSchema, destinationUrlSchema } from "./common.schema.js";
 
-export const createLinkSchema = z.object({
-  destinationUrl: destinationUrlSchema,
-}).strict();
+export const createLinkSchema = z
+  .object({
+    destinationUrl: destinationUrlSchema,
+  })
+  .strict();
 export type CreateLinkBody = z.infer<typeof createLinkSchema>;
 
 export const updateLinkSchema = z

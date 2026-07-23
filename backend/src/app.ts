@@ -6,7 +6,7 @@ import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import helmet from "helmet";
 
 const app = express();
-app.disable("x-powered-by")
+app.disable("x-powered-by");
 app.use(helmet());
 app.use(express.json({ limit: "10kb" }));
 

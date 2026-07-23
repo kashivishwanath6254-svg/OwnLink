@@ -1,9 +1,6 @@
 import type { Request } from "express";
 
-type LogTitle =
-  | "Application Error"
-  | "Client Error"
-  | "Unexpected Error";
+type LogTitle = "Application Error" | "Client Error" | "Unexpected Error";
 
 type LogErrorOptions = {
   title: LogTitle;
@@ -12,12 +9,7 @@ type LogErrorOptions = {
   status?: number;
 };
 
-export function logError({
-  title,
-  req,
-  error,
-  status,
-}: LogErrorOptions) {
+export function logError({ title, req, error, status }: LogErrorOptions) {
   console.error(
     `=================================== ${title} =====================================`,
   );
