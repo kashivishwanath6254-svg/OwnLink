@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "./dist/server.js",
   "scripts": {
     "clean": "rm -rf ./dist ./tsconfig.tsbuildinfo",
     "build": "pnpm clean && tsc",
